@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Печать этикеток ({{ devices|length }} шт.)</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 5mm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Arial", sans-serif;
+            background: white;
+        }
+        
+        .page-header {
+            text-align: center;
+            margin-bottom: 8mm;
+            padding-bottom: 3mm;
+            border-bottom: 2px solid #000;
+        }
+        
+        .page-header h1 {
+            font-size: 14pt;
+            margin-bottom: 2mm;
+        }
+        
+        .page-header p {
+            font-size: 10pt;
+            color: #555;
+        }
+        
+        /* 3 колонки по 70 мм */
+        .labels-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 70mm);
+            grid-auto-rows: 70mm;
+            gap: 4mm;
+            justify-content: center;
+        }
+        
+        .label {
+            border: 1px solid #000;
+            width: 70mm;
+            height: 70mm;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2.5mm;
+            padding: 3mm;
+            page-break-inside: avoid;
+        }
+        
+        .label-header {
+            font-size: 6pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            border-bottom: 1px solid #000;
+            padding-bottom: 1.5mm;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .label-qr {
+            width: 32mm;
+            height: 32mm;
+        }
+        
+        .label-qr img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .label-inv {
+            font-size: 8pt;
+            font-weight: bold;
+            text-align: center;
+            border: 1px solid #000;
+            padding: 1.5mm 3mm;
+            font-family: "Courier New", monospace;
+            background: #f5f5f5;
+        }
+        
+        .label-device {
+            font-size: 6.5pt;
+            font-weight: bold;
+            text-align: center;
+            line-height: 1.2;
+            max-width: 90%;
+        }
+        
+        .label-type {
+            font-size: 5.5pt;
+            color: #555;
+            text-align: center;
+        }
+        
+        .label-footer {
+            font-size: 5pt;
+            color: #666;
+            border-top: 1px solid #ccc;
+            padding-top: 1.5mm;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .no-print {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #667eea;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 10pt;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        .no-print:hover {
+            background: #5568d3;
+        }
+        
+        @media print {
+            .no-print {
+                display: none;
+            }
+            body {
+                margin: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="javascript:history.back()" class="no-print">← Назад</a>
+    
+    <div class="page-header">
+        <h1>{{ org_name }}</h1>
+        <p>Инвентарные этикетки ({{ devices|length }} шт.) | Размер: 70×70 мм</p>
+    </div>
+    
+    <div class="labels-grid">
+        {% for item in devices %}
+        <div class="label">
+            <div class="label-header">ИНВЕНТАРНЫЙ НОМЕР</div>
+            
+            <div class="label-qr">
+                <img src="data:image/png;base64,{{ item.qr_code }}" alt="QR">
+            </div>
+            
+            <div class="label-inv">{{ item.device.inventory_number }}</div>
+            
+            <div class="label-device">{{ item.device.name }}</div>
+            
+            <div class="label-type">{{ item.device.device_type.name }}</div>
+            
+            <div class="label-footer">Отсканируйте для информации</div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <script>
+        window.onload = function() {
+            setTimeout(function() {
+                window.print();
+            }, 500);
+        }
+    </script>
+</body>
+</html>

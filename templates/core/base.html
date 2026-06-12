@@ -1,0 +1,13 @@
+<div class="user-info">
+    {% if user.is_authenticated %}
+        <span style="margin-right: 10px;">
+            👤 {{ user.get_full_name|default:user.username }}
+            {% if user.is_staff %}
+                <span style="background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 5px;">Админ</span>
+            {% endif %}
+        </span>
+        <a href="{% url 'logout' %}" style="margin-left: 10px; opacity: 0.9;">Выход</a>
+    {% else %}
+        <a href="{% url 'login' %}">Вход</a>
+    {% endif %}
+</div>

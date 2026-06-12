@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Отчет: {{ report_type|upper }}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: "Times New Roman", Times, serif; 
+            font-size: 10pt; 
+            color: #000; 
+            background: #fff;
+            padding: 12mm;
+            line-height: 1.2;
+        }
+        .header { 
+            text-align: center; 
+            margin-bottom: 15px; 
+            border-bottom: 2px solid #000; 
+            padding-bottom: 10px; 
+        }
+        .header h1 { margin: 0; font-size: 12pt; text-transform: uppercase; font-weight: bold; }
+        .header .org-name { font-size: 11pt; font-weight: bold; margin: 5px 0; }
+        .header .org-details { font-size: 9pt; color: #333; margin: 3px 0; }
+        .header h2 { margin: 10px 0 0; font-size: 11pt; font-weight: bold; text-decoration: underline; }
+        
+        .org-block { 
+            font-size: 9pt; 
+            margin-bottom: 10px; 
+            padding: 5px 0; 
+            border-bottom: 1px solid #ccc; 
+        }
+        .org-block table { width: 100%; border: none; }
+        .org-block td { border: none; padding: 2px 0; }
+        
+        .meta { 
+            display: flex; 
+            justify-content: space-between; 
+            margin-bottom: 10px; 
+            font-size: 9pt; 
+        }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 9pt; }
+        th, td { border: 1px solid #000; padding: 5px; text-align: left; vertical-align: top; }
+        th { background: #f5f5f5; font-weight: bold; text-align: center; font-size: 9pt; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        tr { page-break-inside: avoid; }
+        .total-row { background: #e9ecef; font-weight: bold; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        
+        .no-print { margin-top: 25px; text-align: center; padding: 15px; background: #f5f5f5; border-radius: 4px; }
+        .btn { padding: 8px 16px; background: #333; color: #fff; text-decoration: none; border-radius: 4px; margin: 0 5px; display: inline-block; cursor: pointer; border: none; font-size: 10pt; }
+        .btn:hover { background: #555; }
+        
+        .signature-block { margin-top: 30px; display: flex; justify-content: space-between; font-size: 10pt; }
+        .signature-block p { margin: 5px 0; }
+        .signature-line { border-top: 1px solid #000; padding-top: 3px; margin-top: 20px; display: inline-block; min-width: 200px; }
+
+        @media print {
+            body { padding: 10mm; font-size: 9pt; }
+            .no-print { display: none !important; }
+            th { background: #f5f5f5 !important; }
+            .total-row { background: #e9ecef !important; }
+            @page { size: A4; margin: 10mm; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Шапка документа -->
+    <div class="header">
+        <div class="org-name">{{ org.org_full_name }}</div>
+        <div class="org-details">
+            {{ org.org_legal_address }}<br>
+            ИНН {{ org.org_inn }} / КПП {{ org.org_kpp }} / ОГРН {{ org.ogrn }}
+        </div>
+        <h2>
+            {% if report_type == 'value' %}ИНВЕНТАРНАЯ КАРТОЧКА УЧЕТА ОБЪЕКТА ОСНОВНЫХ СРЕДСТВ
+            {% elif report_type == 'network' %}ТЕХНИЧЕСКИЙ РЕЕСТР СЕТЕВЫХ ПАРАМЕТРОВ
+            {% elif report_type == 'user' %}АКТ ПРИЕМА-ПЕРЕДАЧИ МАТЕРИАЛЬНЫХ ЦЕННОСТЕЙ
+            {% else %}ОБЩИЙ РЕЕСТР УСТРОЙСТВ{% endif %}
+        </h2>
+    </div>
+
+    <!-- Блок с реквизитами организации -->
+    <div class="org-block">
+        <table>
+            <tr>
+                <td style="width: 50%;"><strong>Подразделение:</strong> {{ org.it_dept_name }}</td>
+                <td><strong>Ответственный ИТ:</strong> {{ org.it_head_fio }} ({{ org.it_head_position }})</td>
+            </tr>
+            <tr>
+                <td><strong>Телефон:</strong> {{ org.it_dept_phone }}</td>
+                <td><strong>Email:</strong> {{ org.it_dept_email }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="meta">
+        <span><strong>Дата формирования:</strong> {{ generated_at }}</span>
+        {% if report_type == 'user' and target_user %}
+            <span><strong>Сотрудник:</strong> {{ target_user.get_full_name|default:target_user.username }}</span>
+        {% endif %}
+    </div>
+
+    <!-- 📊 ОТЧЕТ: ИНВЕНТАРНАЯ КАРТОЧКА (Форма ОС) -->
+    {% if report_type == 'value' %}
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 4%;">№</th>
+                <th style="width: 13%;">Инв. номер</th>
+                <th style="width: 28%;">Наименование объекта</th>
+                <th style="width: 10%;">Группа ОС</th>
+                <th style="width: 8%;">Год</th>
+                <th style="width: 15%;">Местонахождение</th>
+                <th style="width: 14%;">МОЛ</th>
+                <th style="width: 8%;">Стоимость</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in devices %}
+            <tr>
+                <td style="text-align: center;">{{ forloop.counter }}</td>
+                <td>{{ item.obj.inventory_number }}</td>
+                <td>
+                    <strong>{{ item.obj.name }}</strong><br>
+                    <small style="color:#555">{{ item.obj.device_type.name }}</small>
+                </td>
+                <td style="text-align: center;">101.34.000</td>
+                <td style="text-align: center;">{{ item.year }}</td>
+                <td>
+                    {% if item.movement and item.movement.location %}
+                        {{ item.movement.location.name }}
+                    {% else %}—{% endif %}
+                </td>
+                <td>
+                    {% if item.movement and item.movement.employee %}
+                        {{ item.movement.employee.user.get_full_name }}
+                    {% else %}—{% endif %}
+                </td>
+                <td style="text-align: right;">{{ item.cost|floatformat:0 }}</td>
+            </tr>
+            {% endfor %}
+            {% if devices %}
+            <tr class="total-row">
+                <td colspan="7" style="text-align: right;">ИТОГО:</td>
+                <td style="text-align: right;">{{ total_value|floatformat:0 }}</td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+    {% if not devices %}<p style="text-align:center; padding:15px; font-style:italic;">Нет данных для отображения</p>{% endif %}
+    
+    <div style="margin-top: 20px; font-size: 9pt;">
+        <p><strong>Руководитель организации:</strong> {{ org.head_position }} _______________ {{ org.head_fio }}</p>
+        <p style="margin-top: 10px;"><strong>Главный бухгалтер:</strong> {{ org.accountant_position }} _______________ {{ org.accountant_fio }}</p>
+    </div>
+    
+    <div class="signature-block">
+        <div>
+            <p>Сдал (ИТ-отдел):</p>
+            <div class="signature-line">_______________ / {{ org.it_head_fio }} /</div>
+        </div>
+        <div>
+            <p>Принял (МОЛ):</p>
+            <div class="signature-line">_______________ / _______________________ /</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- 🌐 ОТЧЕТ: СЕТЕВЫЕ ПАРАМЕТРЫ -->
+    {% if report_type == 'network' %}
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 4%;">№</th>
+                <th style="width: 14%;">Инв. №</th>
+                <th style="width: 20%;">Устройство</th>
+                <th style="width: 22%;">Сетевые настройки</th>
+                <th style="width: 16%;">Местоположение</th>
+                <th style="width: 24%;">Характеристики</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in devices %}
+            <tr>
+                <td style="text-align: center;">{{ forloop.counter }}</td>
+                <td>{{ item.obj.inventory_number }}</td>
+                <td>
+                    <strong>{{ item.obj.name }}</strong><br>
+                    <small>{{ item.obj.device_type.name }}</small>
+                </td>
+                <td style="font-size: 8pt; line-height: 1.3;">{{ item.net_str|safe }}</td>
+                <td>
+                    {% if item.movement and item.movement.location %}
+                        <strong>{{ item.movement.location.name }}</strong>
+                    {% else %}—{% endif %}
+                </td>
+                <td style="font-size: 8pt; line-height: 1.2;">{{ item.chars_str }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if not devices %}<p style="text-align:center; padding:15px; font-style:italic;">Устройства с сетевыми настройками не найдены</p>{% endif %}
+    {% endif %}
+
+    <!-- 👤 ОТЧЕТ: ПОДОТЧЕТ СОТРУДНИКА -->
+    {% if report_type == 'user' %}
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 5%;">№</th>
+                <th style="width: 15%;">Инв. №</th>
+                <th style="width: 35%;">Наименование</th>
+                <th style="width: 15%;">Статус</th>
+                <th style="width: 15%;">Местоположение</th>
+                <th style="width: 15%;">Стоимость</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in devices %}
+            <tr>
+                <td style="text-align: center;">{{ forloop.counter }}</td>
+                <td>{{ item.obj.inventory_number }}</td>
+                <td><strong>{{ item.obj.name }}</strong></td>
+                <td>{{ item.obj.status.name }}</td>
+                <td>
+                    {% if item.movement and item.movement.location %}{{ item.movement.location.name }}{% else %}—{% endif %}
+                </td>
+                <td style="text-align: right;">{{ item.cost|floatformat:0 }}</td>
+            </tr>
+            {% endfor %}
+            {% if devices %}
+            <tr class="total-row">
+                <td colspan="5" style="text-align: right;">Всего закреплено: {{ devices|length }} ед.</td>
+                <td></td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+    {% if not devices %}<p style="text-align:center; padding:15px; font-style:italic;">За сотрудником не закреплено устройств</p>{% endif %}
+    
+    <div class="signature-block">
+        <div>
+            <p>Передал (ИТ-отдел):</p>
+            <div class="signature-line">_______________ / {{ org.it_head_fio }} /</div>
+        </div>
+        <div>
+            <p>Принял (МОЛ):</p>
+            <div class="signature-line">_______________ / {{ target_user.get_full_name|default:"" }} /</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Кнопки управления (скрываются при печати) -->
+    <div class="no-print">
+        <button onclick="window.print()" class="btn">Печать / Сохранить PDF</button>
+        <a href="javascript:history.back()" class="btn">Назад</a>
+        <p style="margin-top: 10px; font-size: 9pt; color: #666;">
+            Для сохранения в PDF: нажмите "Печать" → выберите "Сохранить как PDF"
+        </p>
+    </div>
+</body>
+</html>

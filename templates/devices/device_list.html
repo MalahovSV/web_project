@@ -1,0 +1,166 @@
+{% extends 'base.html' %}
+
+{% block title %}Устройства{% endblock %}
+
+{% block content %}
+<h1 class="page-title">🖥️ Устройства</h1>
+
+<div class="card">
+    <!-- Фильтры -->
+    <form method="get" style="margin-bottom: 25px; padding: 20px; background: #f7fafc; border-radius: 6px;">
+        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 15px; align-items: end;">
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 14px; color: #4a5568;">🔍 Поиск</label>
+                <input type="text" name="search" value="{{ search_query }}" 
+                       placeholder="Инвентарный номер или название..." 
+                       style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px;">
+            </div>
+            
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 14px; color: #4a5568;">📊 Статус</label>
+                <select name="status" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px;">
+                    <option value="">Все статусы</option>
+                    {% for status in statuses %}
+                    <option value="{{ status.id_status }}" {% if current_status == status.id_status|stringformat:"s" %}selected{% endif %}>
+                        {{ status.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 500; font-size: 14px; color: #4a5568;">📍 Местоположение</label>
+                <select name="location" style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px; font-size: 14px;">
+                    <option value="">Все места</option>
+                    {% for loc in locations %}
+                    <option value="{{ loc.id_location }}" {% if current_location == loc.id_location|stringformat:"s" %}selected{% endif %}>
+                        {{ loc.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <button type="submit" class="btn" style="width: 100%;">Применить</button>
+            </div>
+        </div>
+        
+        {% if search_query or current_status or current_location %}
+        <div style="margin-top: 15px;">
+            <a href="{% url 'device_list' %}" style="color: #667eea; text-decoration: none; font-size: 14px;">✕ Сбросить фильтры</a>
+        </div>
+        {% endif %}
+    </form>
+
+    <!-- 🏷️ Панель массовой печати (появляется только если есть устройства) -->
+    {% if devices %}
+    <div style="margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <form method="get" action="{% url 'print_inventory_labels_batch' %}" target="_blank" id="batch-print-form" style="display: flex; align-items: center; gap: 10px;">
+            <button type="submit" class="btn btn-success">🏷️ Печать выбранных этикеток</button>
+            <span style="color: #718096; font-size: 13px;">Отметьте устройства чекбоксами</span>
+            
+            <!-- Сохраняем текущие фильтры при переходе на печать -->
+            {% if current_status %}<input type="hidden" name="status" value="{{ current_status }}">{% endif %}
+            {% if current_location %}<input type="hidden" name="location" value="{{ current_location }}">{% endif %}
+            {% if search_query %}<input type="hidden" name="search" value="{{ search_query }}">{% endif %}
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Таблица устройств с чекбоксами -->
+    {% if devices %}
+    <div style="overflow-x: auto;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th style="width: 40px; text-align: center;">
+                        <!-- ✅ ИСПРАВЛЕНО: добавлен form="batch-print-form" -->
+                        <input type="checkbox" id="select-all" onclick="toggleSelectAll()" 
+                               form="batch-print-form" title="Выбрать все на странице">
+                    </th>
+                    <th>Инв. номер</th>
+                    <th>Наименование</th>
+                    <th>Тип</th>
+                    <th>Производитель</th>
+                    <th>Статус</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for device in devices %}
+                <tr>
+                    <td style="text-align: center;">
+                        <!-- ✅ ИСПРАВЛЕНО: добавлен form="batch-print-form" -->
+                        <input type="checkbox" name="devices" value="{{ device.inventory_number }}" 
+                               class="device-checkbox" form="batch-print-form">
+                    </td>
+                    <td style="font-weight: 600; color: #2d3748;">{{ device.inventory_number }}</td>
+                    <td>{{ device.name }}</td>
+                    <td>{{ device.device_type.name }}</td>
+                    <td>{{ device.manufacturer.name }}</td>
+                    <td>
+                        <span style="padding: 4px 10px; background: {% if device.status.name == 'В эксплуатации' %}#c6f6d5{% elif device.status.name == 'В ремонте' %}#feebc8{% elif device.status.name == 'Списан' %}#fed7d7{% else %}#e2e8f0{% endif %}; color: {% if device.status.name == 'В эксплуатации' %}#22543d{% elif device.status.name == 'В ремонте' %}#744210{% elif device.status.name == 'Списан' %}#742a2a{% else %}#4a5568{% endif %}; border-radius: 4px; font-size: 13px; font-weight: 500;">
+                            {{ device.status.name }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{% url 'device_detail' device.inventory_number %}" class="btn btn-sm">Просмотр</a>
+                        <a href="{% url 'print_inventory_label' device.inventory_number %}" target="_blank" class="btn btn-sm" style="background: #718096;" title="Печать этикетки">🏷️</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div style="margin-top: 20px; color: #718096; font-size: 14px;">
+        Найдено устройств: <strong>{{ devices.count }}</strong>
+    </div>
+    {% else %}
+    <div style="text-align: center; padding: 60px 20px; color: #718096;">
+        <div style="font-size: 48px; margin-bottom: 15px;">🔍</div>
+        <p style="font-size: 18px; margin-bottom: 20px;">Устройства не найдены</p>
+        <a href="{% url 'device_list' %}" class="btn">Сбросить фильтры</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Отчеты и кнопка добавления -->
+<div style="margin-top: 25px;">
+    <h3 style="margin: 0 0 10px 0; font-size: 16px;">📄 Генерация отчетов</h3>
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="{% url 'print_report' %}?type=value" target="_blank" class="btn">📊 Материальная ценность</a>
+        <a href="{% url 'print_report' %}?type=network" target="_blank" class="btn">🌐 Сетевая схема (IP)</a>
+        <a href="{% url 'print_report' %}?type=user&user_id={{ request.user.id }}" target="_blank" class="btn">👤 Мой подотчет</a>
+    </div>
+</div>
+
+<div style="text-align: center; margin-top: 20px;">
+    <a href="/admin/inventory/device/add/" class="btn btn-success">➕ Добавить устройство</a>
+</div>
+
+<!-- 🧠 Скрипт управления чекбоксами -->
+<script>
+    function toggleSelectAll() {
+        const selectAll = document.getElementById('select-all');
+        const checkboxes = document.querySelectorAll('.device-checkbox');
+        checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    }
+
+    // Автоматическое обновление главного чекбокса при ручном выборе
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectAll = document.getElementById('select-all');
+        const checkboxes = document.querySelectorAll('.device-checkbox');
+        
+        checkboxes.forEach(cb => {
+            cb.addEventListener('change', function() {
+                if (!this.checked) {
+                    selectAll.checked = false;
+                } else {
+                    selectAll.checked = Array.from(checkboxes).every(c => c.checked);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

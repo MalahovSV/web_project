@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block title %}Устройства {{ employee.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+    <h1 class="page-title" style="margin-bottom: 0;">👤 {{ employee.user.get_full_name }}</h1>
+    <a href="{% url 'dashboard' %}" class="btn btn-secondary">← На дашборд</a>
+</div>
+
+<div class="card" style="margin-bottom: 25px;">
+    <h2 class="card-title">📋 Информация о сотруднике</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+        <div>
+            <div style="color: #718096; font-size: 13px; margin-bottom: 5px;">Должность</div>
+            <div style="font-size: 16px; font-weight: 600;">{{ employee.position.name|default:"Не указана" }}</div>
+        </div>
+        <div>
+            <div style="color: #718096; font-size: 13px; margin-bottom: 5px;">Отдел</div>
+            <div style="font-size: 16px; font-weight: 600;">{{ employee.department|default:"Не указан" }}</div>
+        </div>
+        <div>
+            <div style="color: #718096; font-size: 13px; margin-bottom: 5px;">Телефон</div>
+            <div style="font-size: 16px; font-weight: 600;">{{ employee.phone|default:"Не указан" }}</div>
+        </div>
+        <div>
+            <div style="color: #718096; font-size: 13px; margin-bottom: 5px;">Email</div>
+            <div style="font-size: 16px; font-weight: 600;">{{ employee.user.email|default:"Не указан" }}</div>
+        </div>
+        <div>
+            <div style="color: #718096; font-size: 13px; margin-bottom: 5px;">Статус МОЛ</div>
+            <div style="font-size: 16px; font-weight: 600;">
+                {% if employee.is_mol %}
+                    <span style="color: #48bb78;">✓ Материально-ответственное лицо</span>
+                {% else %}
+                    <span style="color: #718096;">—</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2 class="card-title">🖥️ Закрепленные устройства ({{ devices.count }})</h2>
+    {% if devices %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Инв. номер</th>
+                <th>Наименование</th>
+                <th>Тип</th>
+                <th>Производитель</th>
+                <th>Статус</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for device in devices %}
+            <tr>
+                <td style="font-weight: 600;">{{ device.inventory_number }}</td>
+                <td>{{ device.name }}</td>
+                <td>{{ device.device_type.name }}</td>
+                <td>{{ device.manufacturer.name }}</td>
+                <td>
+                    <span style="padding: 4px 10px; background: {% if device.status.name == 'В эксплуатации' %}#c6f6d5{% elif device.status.name == 'В ремонте' %}#feebc8{% elif device.status.name == 'Списан' %}#fed7d7{% else %}#e2e8f0{% endif %}; border-radius: 4px; font-size: 13px;">
+                        {{ device.status.name }}
+                    </span>
+                </td>
+                <td>
+                    <a href="{% url 'device_detail' device.inventory_number %}" class="btn btn-sm">Просмотр</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #718096; text-align: center; padding: 40px;">За данным сотрудником не закреплено устройств</p>
+    {% endif %}
+</div>
+{% endblock %}

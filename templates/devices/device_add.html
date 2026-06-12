@@ -1,0 +1,365 @@
+{% extends 'base.html' %}
+
+{% block title %}Добавление устройства{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #cbd5e0;
+        border-radius: 6px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+    .form-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .form-section {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    .form-section h3 {
+        margin-top: 0;
+        margin-bottom: 15px;
+        color: #4a5568;
+        font-size: 16px;
+    }
+    .form-row {
+        display: grid;
+        grid-template-columns: 200px 1fr;
+        gap: 15px;
+        align-items: center;
+        margin-bottom: 12px;
+    }
+    .form-row label {
+        text-align: right;
+        font-weight: 500;
+        color: #4a5568;
+    }
+    /* Динамические поля характеристик */
+    .dynamic-fields {
+        margin-top: 20px;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        border: 1px solid #e2e8f0;
+    }
+    .dynamic-field-group {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    .dynamic-field-group h4 {
+        margin: 0 0 10px 0;
+        color: #667eea;
+        font-size: 14px;
+        text-transform: uppercase;
+    }
+    .nested-field {
+        display: grid;
+        grid-template-columns: 150px 1fr;
+        gap: 10px;
+        margin-bottom: 8px;
+        padding-left: 20px;
+    }
+    .nested-field label {
+        font-size: 13px;
+        color: #718096;
+    }
+    .btn-group {
+        display: flex;
+        gap: 15px;
+        margin-top: 25px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+    <h1 class="page-title">🆕 Добавление устройства</h1>
+    
+    <form method="post" id="device-form">
+        {% csrf_token %}
+        
+        <!-- Основные поля -->
+        <div class="form-section">
+            <h3>📋 Основная информация</h3>
+            <div class="form-row">
+                <label for="{{ form.inventory_number.id_for_label }}">Инвентарный номер:</label>
+                {{ form.inventory_number }}
+            </div>
+            <div class="form-row">
+                <label for="{{ form.name.id_for_label }}">Наименование:</label>
+                {{ form.name }}
+            </div>
+            <div class="form-row">
+                <label for="{{ form.device_type.id_for_label }}">Тип устройства:</label>
+                {{ form.device_type }}
+            </div>
+            <div class="form-row">
+                <label for="{{ form.manufacturer.id_for_label }}">Производитель:</label>
+                {{ form.manufacturer }}
+            </div>
+            <div class="form-row">
+                <label for="{{ form.status.id_for_label }}">Статус:</label>
+                {{ form.status }}
+            </div>
+        </div>
+
+        <!-- Динамические поля характеристик -->
+        <div class="form-section" id="characteristics-section" style="display: none;">
+            <h3>⚙️ Технические характеристики</h3>
+            <div id="characteristics-fields" class="dynamic-fields">
+                <!-- Здесь JavaScript сгенерирует поля -->
+            </div>
+        </div>
+
+        <!-- Динамические поля настроек -->
+        <div class="form-section" id="settings-section" style="display: none;">
+            <h3>🔧 Программные настройки</h3>
+            <div id="settings-fields" class="dynamic-fields">
+                <!-- Здесь JavaScript сгенерирует поля -->
+            </div>
+        </div>
+
+        <!-- Скрытые поля для JSON -->
+        {{ form.characteristics_data }}
+        {{ form.settings_data }}
+
+        <div class="btn-group">
+            <button type="submit" class="btn btn-success" style="padding: 12px 30px;">💾 Сохранить устройство</button>
+            <a href="{% url 'device_list' %}" class="btn btn-secondary" style="padding: 12px 30px;">Отмена</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let characteristicsTemplate = {};
+let settingsTemplate = {};
+let currentCharacteristicsData = {};
+let currentSettingsData = {};
+
+document.addEventListener('DOMContentLoaded', function() {
+    const deviceTypeSelect = document.getElementById('{{ form.device_type.id_for_label }}');
+    
+    deviceTypeSelect.addEventListener('change', function() {
+        const deviceTypeId = this.value;
+        console.log('Выбран тип устройства:', deviceTypeId);
+        
+        if (deviceTypeId) {
+            loadDeviceTemplate(deviceTypeId);
+        }
+    });
+    
+    document.getElementById('device-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        collectFormData();
+        this.submit();
+    });
+});
+
+async function loadDeviceTemplate(deviceTypeId) {
+    try {
+        console.log('Запрос шаблона для ID:', deviceTypeId);
+        const response = await fetch(`/api/device-template/${deviceTypeId}/`);
+        const data = await response.json();
+        
+        console.log('=== ПОЛНЫЙ ОТВЕТ СЕРВЕРА ===');
+        console.log(data);
+        console.log('=========================');
+        
+        characteristicsTemplate = data.characteristics || {};
+        settingsTemplate = data.settings || {};
+        
+        console.log('Characteristics template:', characteristicsTemplate);
+        console.log('Settings template:', settingsTemplate);
+        
+        if (Object.keys(characteristicsTemplate).length > 0) {
+            document.getElementById('characteristics-section').style.display = 'block';
+            const container = document.getElementById('characteristics-fields');
+            container.innerHTML = '';
+            buildFormFromJSON(container, characteristicsTemplate, 'characteristics');
+        }
+        
+        if (Object.keys(settingsTemplate).length > 0) {
+            document.getElementById('settings-section').style.display = 'block';
+            const container = document.getElementById('settings-fields');
+            container.innerHTML = '';
+            buildFormFromJSON(container, settingsTemplate, 'settings');
+        }
+        
+    } catch (error) {
+        console.error('Ошибка загрузки шаблона:', error);
+        alert('Ошибка загрузки шаблона: ' + error.message);
+    }
+}
+
+function buildFormFromJSON(container, jsonData, prefix) {
+    console.log(`\n=== Построение формы для ${prefix} ===`);
+    console.log('Входные данные:', jsonData);
+    
+    for (const [key, value] of Object.entries(jsonData)) {
+        console.log(`\nОбработка ключа: ${key}, тип: ${typeof value}, значение:`, value);
+        
+        const section = document.createElement('div');
+        section.style.marginBottom = '20px';
+        section.style.padding = '15px';
+        section.style.background = '#f8f9fa';
+        section.style.borderRadius = '6px';
+        
+        const title = document.createElement('h4');
+        title.textContent = formatKey(key);
+        title.style.margin = '0 0 10px 0';
+        title.style.color = '#667eea';
+        title.style.fontSize = '14px';
+        title.style.borderBottom = '2px solid #667eea';
+        title.style.paddingBottom = '5px';
+        section.appendChild(title);
+        
+        if (value === null || value === undefined) {
+            console.log('  -> null/undefined, создаю текстовое поле');
+            createField(section, key, key, 'text', '', prefix);
+        }
+        else if (typeof value === 'boolean') {
+            console.log('  -> boolean, создаю чекбокс');
+            createField(section, key, key, 'checkbox', value, prefix);
+        }
+        else if (typeof value === 'number') {
+            console.log('  -> number, создаю числовое поле');
+            createField(section, key, key, 'number', '', prefix);
+        }
+        else if (typeof value === 'string') {
+            console.log('  -> string, создаю текстовое поле со значением:', value);
+            createField(section, key, key, 'text', value, prefix);
+        }
+        else if (Array.isArray(value)) {
+            console.log('  -> array, создаю инфо-блок');
+            const infoDiv = document.createElement('div');
+            infoDiv.style.padding = '10px';
+            infoDiv.style.background = 'white';
+            infoDiv.style.borderRadius = '4px';
+            infoDiv.style.fontSize = '13px';
+            infoDiv.style.color = '#718096';
+            infoDiv.innerHTML = `<strong>${formatKey(key)}:</strong> Массив (${value.length} элементов)<br><small>Настраивается после сохранения устройства</small>`;
+            section.appendChild(infoDiv);
+        }
+        else if (typeof value === 'object') {
+            console.log('  -> object, рекурсивно обрабатываю вложенные поля');
+            for (const [subKey, subValue] of Object.entries(value)) {
+                console.log(`    Вложенное поле: ${subKey} =`, subValue);
+                const subKeyType = typeof subValue;
+                
+                if (subKeyType === 'boolean') {
+                    createField(section, `${key}_${subKey}`, subKey, 'checkbox', subValue, prefix);
+                } else if (subKeyType === 'number') {
+                    createField(section, `${key}_${subKey}`, subKey, 'number', '', prefix);
+                } else if (subKeyType === 'string') {
+                    createField(section, `${key}_${subKey}`, subKey, 'text', subValue, prefix);
+                } else if (subValue === null || subValue === undefined) {
+                    createField(section, `${key}_${subKey}`, subKey, 'text', '', prefix);
+                } else if (typeof subValue === 'object' && !Array.isArray(subValue)) {
+                    // Третий уровень вложенности
+                    for (const [deepKey, deepValue] of Object.entries(subValue)) {
+                        createField(section, `${key}_${subKey}_${deepKey}`, `${subKey} ${deepKey}`, 
+                                   deepValue === null ? 'text' : (typeof deepValue === 'boolean' ? 'checkbox' : 'text'), 
+                                   deepValue || '', prefix);
+                    }
+                }
+            }
+        }
+        
+        container.appendChild(section);
+    }
+    
+    console.log('=== Конец построения формы ===\n');
+}
+
+function createField(container, fullKey, label, type, defaultValue, prefix) {
+    const wrapper = document.createElement('div');
+    wrapper.style.display = 'grid';
+    wrapper.style.gridTemplateColumns = '150px 1fr';
+    wrapper.style.gap = '10px';
+    wrapper.style.marginBottom = '8px';
+    wrapper.style.alignItems = 'center';
+    
+    const labelEl = document.createElement('label');
+    labelEl.textContent = formatKey(label) + ':';
+    labelEl.htmlFor = `field_${prefix}_${fullKey}`;
+    labelEl.style.fontSize = '13px';
+    labelEl.style.color = '#718096';
+    labelEl.style.textAlign = 'right';
+    
+    const input = document.createElement('input');
+    input.type = type;
+    input.id = `field_${prefix}_${fullKey}`;
+    input.className = 'form-input';
+    input.style.padding = '8px 12px';
+    input.dataset.fullKey = fullKey;
+    input.dataset.prefix = prefix;
+    
+    if (type === 'checkbox') {
+        input.checked = defaultValue === true;
+    } else {
+        input.value = defaultValue || '';
+    }
+    
+    input.addEventListener('input', function() {
+        let value;
+        if (this.type === 'checkbox') {
+            value = this.checked;
+        } else if (this.type === 'number') {
+            value = this.value === '' ? null : parseFloat(this.value);
+        } else {
+            value = this.value;
+        }
+        
+        updateDataStructure(this.dataset.prefix, this.dataset.fullKey, value);
+    });
+    
+    wrapper.appendChild(labelEl);
+    wrapper.appendChild(input);
+    container.appendChild(wrapper);
+    
+    console.log(`    Создано поле: ${fullKey} (type=${type})`);
+}
+
+function updateDataStructure(prefix, fullKey, value) {
+    const targetData = prefix === 'characteristics' ? currentCharacteristicsData : currentSettingsData;
+    
+    if (fullKey.includes('_')) {
+        const parts = fullKey.split('_');
+        const parentKey = parts[0];
+        const childKey = parts.slice(1).join('_');
+        
+        if (!targetData[parentKey]) {
+            targetData[parentKey] = {};
+        }
+        targetData[parentKey][childKey] = value;
+    } else {
+        targetData[fullKey] = value;
+    }
+    
+    console.log(`${prefix} обновлен:`, targetData);
+}
+
+function formatKey(key) {
+    return key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
+function collectFormData() {
+    console.log('\n=== СБОР ДАННЫХ ФОРМЫ ===');
+    console.log('Characteristics:', JSON.stringify(currentCharacteristicsData, null, 2));
+    console.log('Settings:', JSON.stringify(currentSettingsData, null, 2));
+    
+    document.getElementById('{{ form.characteristics_data.id_for_label }}').value = JSON.stringify(currentCharacteristicsData);
+    document.getElementById('{{ form.settings_data.id_for_label }}').value = JSON.stringify(currentSettingsData);
+}
+</script>
+{% endblock %}

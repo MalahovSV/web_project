@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Учет ИТ-техники{% endblock %} | Администрация г. Рубцовска</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif; background: #f5f7fa; color: #333; line-height: 1.6; }
+        
+        /* Header */
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header-top { padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 20px; font-weight: bold; }
+        .user-info { font-size: 14px; }
+        .user-info a { color: white; text-decoration: underline; margin-left: 10px; }
+        
+        /* Navigation */
+        .nav { background: rgba(0,0,0,0.2); padding: 0 30px; }
+        .nav ul { list-style: none; display: flex; gap: 5px; }
+        .nav a { display: block; padding: 12px 20px; color: rgba(255,255,255,0.9); text-decoration: none; transition: all 0.3s; border-radius: 4px 4px 0 0; }
+        .nav a:hover, .nav a.active { background: rgba(255,255,255,0.15); color: white; }
+        
+        /* Content */
+        .container { max-width: 1400px; margin: 0 auto; padding: 30px; }
+        .page-title { font-size: 28px; margin-bottom: 25px; color: #2d3748; }
+        
+        /* Cards */
+        .card { background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 25px; margin-bottom: 25px; }
+        .card-title { font-size: 18px; font-weight: 600; margin-bottom: 20px; color: #2d3748; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        
+        /* Buttons */
+        .btn { display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; transition: all 0.3s; }
+        .btn:hover { background: #5568d3; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+        .btn-sm { padding: 6px 12px; font-size: 13px; }
+        .btn-secondary { background: #718096; }
+        .btn-secondary:hover { background: #4a5568; }
+        .btn-success { background: #48bb78; }
+        .btn-success:hover { background: #38a169; }
+        
+        /* Table */
+        .table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .table th, .table td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        .table th { background: #f7fafc; font-weight: 600; color: #4a5568; font-size: 13px; text-transform: uppercase; }
+        .table tr:hover { background: #f7fafc; }
+        
+        /* Footer */
+        .footer { background: #2d3748; color: rgba(255,255,255,0.7); text-align: center; padding: 20px; margin-top: 50px; font-size: 14px; }
+        
+        /* Messages */
+        .messages { position: fixed; top: 20px; right: 20px; z-index: 1000; }
+        .message { background: white; padding: 15px 20px; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); margin-bottom: 10px; animation: slideIn 0.3s ease; }
+        .message.error { background: #fed7d7; color: #c53030; border-left: 4px solid #c53030; }
+        .message.success { background: #c6f6d5; color: #22543d; border-left: 4px solid #22543d; }
+        @keyframes slideIn { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="header">
+        <div class="header-top">
+            <div class="logo">💻 Учет ИТ-техники</div>
+            <div class="user-info">
+                {% if user.is_authenticated %}
+                    {{ user.get_full_name|default:user.username }}
+                    <a href="/admin/">Админка</a>
+                    <a href="/logout/">Выход</a>
+                {% else %}
+                    <a href="/admin/">Вход</a>
+                {% endif %}
+            </div>
+        </div>
+<!-- templates/base.html - блок навигации -->
+<nav class="nav">
+    <ul>
+        <!-- Дашборд видят все -->
+        <li><a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">📊 Дашборд</a></li>
+        
+        <!-- Устройства и отчеты — только для админов/ИТ -->
+        {% if user.is_staff %}
+            <li><a href="{% url 'device_list' %}" class="{% if 'device' in request.path and 'my-tickets' not in request.path %}active{% endif %}">🖥️ Устройства</a></li>
+            <li><a href="{% url 'add_device' %}">➕ Добавить</a></li>
+            <li><a href="{% url 'print_report' %}?type=value" target="_blank">📄 Отчеты</a></li>
+            <li><a href="{% url 'register_employee' %}">👤+ Сотрудник</a></li>
+        {% endif %}
+        
+        <!-- Тикеты видят все, но с разными ссылками -->
+        {% if user.is_staff %}
+            <li><a href="/admin/inventory/ticket/" class="{% if 'ticket' in request.path and 'my-tickets' not in request.path %}active{% endif %}">🎫 Все заявки</a></li>
+        {% else %}
+            <li><a href="{% url 'user_tickets' %}" class="{% if request.resolver_match.url_name == 'user_tickets' %}active{% endif %}">🎫 Мои заявки</a></li>
+        {% endif %}
+    </ul>
+</nav>
+    </div>
+    
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="message {{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+    
+    <div class="footer">
+        <p>Система учета компьютерной техники | Администрация города Рубцовска © 2026</p>
+    </div>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

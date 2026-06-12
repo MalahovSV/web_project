@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block title %}Дашборд{% endblock %}
+
+{% block content %}
+<h1 class="page-title">📊 Панель управления</h1>
+
+<!-- ===================================================== -->
+<!-- БЛОК ДЛЯ ОБЫЧНЫХ ПОЛЬЗОВАТЕЛЕЙ (не админов)           -->
+<!-- ===================================================== -->
+{% if not user.is_staff %}
+<div class="card" style="margin-bottom: 25px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+        <div>
+            <h2 style="margin: 0 0 8px 0; font-size: 20px;">🎫 Служба технической поддержки</h2>
+            <p style="margin: 0; opacity: 0.95;">Создавайте заявки и отслеживайте статус обслуживания вашей техники</p>
+        </div>
+        <a href="{% url 'user_tickets' %}" class="btn" style="background: white; color: #667eea; font-weight: 600; white-space: nowrap;">
+            Создать заявку
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <h2 class="card-title">👋 Добро пожаловать, {{ user.get_full_name|default:user.username }}!</h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0;">
+        <div style="text-align: center; padding: 20px; background: #f7fafc; border-radius: 8px;">
+            <div style="font-size: 32px; margin-bottom: 8px;">🖥️</div>
+            <div style="color: #718096; font-size: 13px; margin-bottom: 5px;">Закреплено устройств</div>
+            <div style="font-size: 28px; font-weight: bold; color: #2d3748;">{{ employee.movement_set.count|default:0 }}</div>
+        </div>
+        <div style="text-align: center; padding: 20px; background: #f7fafc; border-radius: 8px;">
+            <div style="font-size: 32px; margin-bottom: 8px;">🎫</div>
+            <div style="color: #718096; font-size: 13px; margin-bottom: 5px;">Активные заявки</div>
+            <div style="font-size: 28px; font-weight: bold; color: #f56565;">{{ active_tickets_count|default:0 }}</div>
+        </div>
+    </div>
+    
+    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+        <p style="margin-bottom: 15px; color: #4a5568;">
+            <strong>Ваша информация:</strong><br>
+            {% if employee.position %}Должность: {{ employee.position.name }}<br>{% endif %}
+            {% if employee.department %}Отдел: {{ employee.department }}<br>{% endif %}
+            {% if employee.phone %}Телефон: {{ employee.phone }}{% endif %}
+        </p>
+        <a href="{% url 'user_tickets' %}" class="btn">🎫 Перейти к моим заявкам</a>
+    </div>
+</div>
+
+{% else %}
+<!-- ===================================================== -->
+<!-- БЛОК ДЛЯ АДМИНИСТРАТОРОВ / ИТ-ОТДЕЛА                  -->
+<!-- ===================================================== -->
+
+<!-- Статистика -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px;">
+    <div class="card" style="margin-bottom: 0; text-align: center; padding: 15px 10px;">
+        <div style="font-size: 36px; margin-bottom: 8px;">🖥️</div>
+        <div style="color: #718096; font-size: 13px; margin-bottom: 3px;">Всего устройств</div>
+        <div style="font-size: 28px; font-weight: bold; color: #2d3748;">{{ total }}</div>
+    </div>
+    
+    <div class="card" style="margin-bottom: 0; text-align: center; padding: 15px 10px;">
+        <div style="font-size: 36px; margin-bottom: 8px;">✅</div>
+        <div style="color: #718096; font-size: 13px; margin-bottom: 3px;">В эксплуатации</div>
+        <div style="font-size: 28px; font-weight: bold; color: #48bb78;">{{ active }}</div>
+    </div>
+    
+    <div class="card" style="margin-bottom: 0; text-align: center; padding: 15px 10px;">
+        <div style="font-size: 36px; margin-bottom: 8px;">🔧</div>
+        <div style="color: #718096; font-size: 13px; margin-bottom: 3px;">В ремонте</div>
+        <div style="font-size: 28px; font-weight: bold; color: #ed8936;">{{ repair }}</div>
+    </div>
+    
+    <div class="card" style="margin-bottom: 0; text-align: center; padding: 15px 10px;">
+        <div style="font-size: 36px; margin-bottom: 8px;">📦</div>
+        <div style="color: #718096; font-size: 13px; margin-bottom: 3px;">На складе</div>
+        <div style="font-size: 28px; font-weight: bold; color: #4299e1;">{{ warehouse }}</div>
+    </div>
+    
+    <div class="card" style="margin-bottom: 0; text-align: center; padding: 15px 10px;">
+        <div style="font-size: 36px; margin-bottom: 8px;">🎫</div>
+        <div style="color: #718096; font-size: 13px; margin-bottom: 3px;">Открытые заявки</div>
+        <div style="font-size: 28px; font-weight: bold; color: #f56565;">{{ tickets }}</div>
+    </div>
+</div>
+
+<!-- Две колонки: перемещения и заявки -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+    
+    <!-- Последние перемещения -->
+    <div class="card">
+        <h2 class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>📦 Последние перемещения</span>
+            <a href="/admin/inventory/movement/" style="font-size: 12px; color: #667eea; text-decoration: none; font-weight: normal;">Все →</a>
+        </h2>
+        
+        {% if movements %}
+        <div style="overflow-x: auto;">
+            <table class="table" style="margin-top: 0; font-size: 13px;">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Устройство</th>
+                        <th>Сотрудник</th>
+                        <th>Место</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for m in movements %}
+                    <tr>
+                        <td style="white-space: nowrap;">{{ m.movement_date|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'device_detail' m.device.inventory_number %}" style="color: #667eea; text-decoration: none; font-weight: 500;">
+                                {{ m.device.inventory_number }}
+                            </a>
+                        </td>
+                        <td>{{ m.employee.user.get_full_name|default:"—" }}</td>
+                        <td>{{ m.location.name }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: #718096; text-align: center; padding: 25px 10px; font-size: 14px;">Нет записей о перемещениях</p>
+        {% endif %}
+    </div>
+    
+    <!-- Последние заявки -->
+    <div class="card">
+        <h2 class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>🎫 Последние заявки</span>
+            <a href="/admin/inventory/ticket/" style="font-size: 12px; color: #667eea; text-decoration: none; font-weight: normal;">Все →</a>
+        </h2>
+        
+        {% if recent_tickets %}
+        <div style="overflow-x: auto;">
+            <table class="table" style="margin-top: 0; font-size: 13px;">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Устройство</th>
+                        <th>Статус</th>
+                        <th>Дата</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for t in recent_tickets %}
+                    <tr>
+                        <td style="font-weight: 600;">#{{ t.id_ticket }}</td>
+                        <td>
+                            <a href="{% url 'device_detail' t.device.inventory_number %}" style="color: #667eea; text-decoration: none;">
+                                {{ t.device.inventory_number }}
+                            </a>
+                        </td>
+                        <td>
+                            <span style="padding: 3px 8px; background: {% if 'Новый' in t.status.name %}#fed7d7{% elif 'В работе' in t.status.name %}#feebc8{% elif 'Выполнен' in t.status.name %}#c6f6d5{% elif 'Отклонен' in t.status.name %}#e2e8f0{% else %}#f7fafc{% endif %}; color: {% if 'Новый' in t.status.name %}#c53030{% elif 'В работе' in t.status.name %}#744210{% elif 'Выполнен' in t.status.name %}#22543d{% elif 'Отклонен' in t.status.name %}#4a5568{% else %}#4a5568{% endif %}; border-radius: 4px; font-size: 11px; font-weight: 500;">
+                                {{ t.status.name }}
+                            </span>
+                        </td>
+
+                        
+                        <td style="white-space: nowrap;">{{ t.created_at|date:"d.m.Y" }}</td>
+                                               
+                        <td>
+                            {% if user.is_staff %}
+                            <a href="{% url 'admin_ticket_detail' t.id_ticket %}" class="btn btn-sm">⚙️ Управление</a>
+                            {% else %}
+                            <a href="{% url 'ticket_detail' t.id_ticket %}" class="btn btn-sm">Просмотр</a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="color: #718096; text-align: center; padding: 25px 10px; font-size: 14px;">Нет активных заявок</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Кнопки действий -->
+<div style="margin-top: 25px; display: flex; gap: 12px; flex-wrap: wrap;">
+    <a href="{% url 'device_list' %}" class="btn">🖥️ Все устройства</a>
+    <a href="{% url 'add_device' %}" class="btn btn-success">➕ Добавить устройство</a>
+    <a href="/admin/inventory/ticket/add/" class="btn" style="background: #718096;">🎫 Создать заявку</a>
+    <a href="{% url 'print_report' %}?type=value" target="_blank" class="btn btn-secondary">📄 Отчёт ОС-1</a>
+</div>
+
+{% endif %}
+{% endblock %}

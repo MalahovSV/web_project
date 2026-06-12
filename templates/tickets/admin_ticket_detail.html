@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+
+{% block title %}Управление заявкой #{{ ticket.id_ticket }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 0 auto;">
+    <!-- Заголовок с навигацией -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <h1 class="page-title" style="margin-bottom: 0;">🔧 Заявка #{{ ticket.id_ticket }}</h1>
+        <div style="display: flex; gap: 10px;">
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">← Дашборд</a>
+            <a href="/admin/inventory/ticket/{{ ticket.id_ticket }}/change/" class="btn">⚙️ В админке</a>
+        </div>
+    </div>
+
+    <!-- Карточка: информация о заявке -->
+    <div class="card" style="margin-bottom: 20px;">
+        <h2 class="card-title">📋 Информация</h2>
+        <table class="table" style="margin-top: 0;">
+            <tr>
+                <td style="font-weight: 600; width: 40%;">Сотрудник:</td>
+                <td>
+                    <strong>{{ ticket.employee.user.get_full_name|default:ticket.employee.user.username }}</strong><br>
+                    <small style="color: #718096;">
+                        {% if ticket.employee.position %}{{ ticket.employee.position.name }}{% endif %}
+                        {% if ticket.employee.department %} | {{ ticket.employee.department }}{% endif %}
+                    </small>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">Устройство:</td>
+                <td>
+                    <strong>{{ ticket.device.inventory_number }}</strong> — {{ ticket.device.name }}<br>
+                    <small style="color: #718096;">{{ ticket.device.device_type.name }}</small>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">Дата создания:</td>
+                <td>{{ ticket.created_at|date:"d.m.Y H:i" }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">Текущий статус:</td>
+                <td>
+                    <span style="padding: 6px 12px; background: {% if 'Новый' in ticket.status.name %}#fed7d7{% elif 'В работе' in ticket.status.name %}#feebc8{% elif 'Выполнен' in ticket.status.name %}#c6f6d5{% elif 'Отклонен' in ticket.status.name %}#e2e8f0{% else %}#f7fafc{% endif %}; color: {% if 'Новый' in ticket.status.name %}#c53030{% elif 'В работе' in ticket.status.name %}#744210{% elif 'Выполнен' in ticket.status.name %}#22543d{% elif 'Отклонен' in ticket.status.name %}#4a5568{% else %}#4a5568{% endif %}; border-radius: 4px; font-weight: 500;">
+                        {{ ticket.status.name }}
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600; vertical-align: top;">Проблема:</td>
+                <td style="white-space: pre-wrap;">{{ ticket.comment }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Блок управления: статус + ответ -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        
+        <!-- 🔄 Смена статуса -->
+        <div class="card">
+            <h3 class="card-title">📊 Изменить статус</h3>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="change_status">
+                
+                <select name="status" class="form-input" style="width: 100%; margin-bottom: 12px;" required>
+                    {% for status in statuses %}
+                    <option value="{{ status.id_status }}" {% if status.id_status == current_status_id %}selected{% endif %}>
+                        {{ status.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                
+                <button type="submit" class="btn btn-success" style="width: 100%;">💾 Применить статус</button>
+            </form>
+        </div>
+
+        <!-- 💬 Технический ответ -->
+        <div class="card">
+            <h3 class="card-title">✍️ Ответ исполнителя</h3>
+            <form method="post">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_response">
+                
+                <textarea name="technical_response" class="form-input" rows="5" 
+                          placeholder="Введите ответ для сотрудника..." 
+                          style="width: 100%; margin-bottom: 12px; resize: vertical;">{{ ticket.technical_response }}</textarea>
+                
+                <button type="submit" class="btn" style="width: 100%; background: #667eea;">📤 Сохранить ответ</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ⚠️ Опасные действия -->
+    <div class="card" style="margin-top: 20px; border-left: 4px solid #f56565;">
+        <h3 class="card-title" style="color: #c53030;">⚠️ Действия с заявкой</h3>
+        
+        <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+            <!-- Отмена заявки -->
+            <form method="post" onsubmit="return confirm('Отменить заявку? Статус будет изменён на «Отклонен».');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="cancel">
+                <button type="submit" class="btn" style="background: #fed7d7; color: #c53030;">🚫 Отменить</button>
+            </form>
+            
+            <!-- Удаление (только для новых/отклоненных) -->
+            {% if ticket.status.name in 'Новый,Отклонен' %}
+            <form method="post" onsubmit="return confirm('Удалить заявку #{{ ticket.id_ticket }}? Это действие нельзя отменить.');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <button type="submit" class="btn" style="background: #e2e8f0; color: #4a5568;">🗑️ Удалить</button>
+            </form>
+            {% else %}
+            <button class="btn" disabled style="background: #e2e8f0; color: #a0aec0; cursor: not-allowed;" 
+                    title="Удаление доступно только для заявок со статусом «Новый» или «Отклонен»">
+                🗑️ Удалить
+            </button>
+            {% endif %}
+        </div>
+        
+        <p style="margin-top: 12px; font-size: 13px; color: #718096;">
+            💡 Удаление невозможно, если заявка уже в работе или выполнена. Сначала измените статус.
+        </p>
+    </div>
+
+    <!-- История изменений (опционально, если есть логирование) -->
+    {% if ticket.technical_response %}
+    <div class="card" style="margin-top: 20px; background: #f7fafc;">
+        <h3 class="card-title">📬 Отправленный ответ</h3>
+        <p style="white-space: pre-wrap; margin: 0;">{{ ticket.technical_response }}</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+    .form-input {
+        padding: 10px 12px;
+        border: 1px solid #cbd5e0;
+        border-radius: 6px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+    .form-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+</style>
+{% endblock %}

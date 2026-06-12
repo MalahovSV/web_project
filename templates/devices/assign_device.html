@@ -1,0 +1,50 @@
+{% extends 'base.html' %}
+
+{% block title %}Передача устройства{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <h1 class="page-title">📦 Передача ответственности</h1>
+    
+    <div class="card">
+        <div style="background: #f7fafc; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+            <strong>Устройство:</strong> {{ device.inventory_number }} ({{ device.name }})<br>
+            <strong>Текущий ответственный:</strong> {{ current_movement.employee.user.get_full_name|default:"Не назначен" }}
+        </div>
+
+        <form method="post">
+            {% csrf_token %}
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;"> Выберите МОЛ:</label>
+                <select name="employee" class="form-input" required>
+                    <option value="">-- Выберите сотрудника --</option>
+                    {% for emp in employees %}
+                    <option value="{{ emp.id_employee }}">{{ emp.user.get_full_name }} ({{ emp.position.name|default:"Без должности" }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;"> Новое местоположение:</label>
+                <select name="location" class="form-input" required>
+                    <option value="">-- Выберите кабинет/склад --</option>
+                    {% for loc in locations %}
+                    <option value="{{ loc.id_location }}">{{ loc.name }} ({{ loc.type.name }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">📝 Комментарий (основание):</label>
+                <input type="text" name="comment" class="form-input" placeholder="Например: Приказ №123 от 15.05.2026">
+            </div>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="submit" class="btn btn-success">✅ Подтвердить передачу</button>
+                <a href="{% url 'device_detail' device.inventory_number %}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+
+{% block title %}Смена статуса: {{ device.inventory_number }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <h1 class="page-title" style="margin-bottom: 0;">🔄 Смена статуса</h1>
+        <a href="{% url 'device_detail' device.inventory_number %}" class="btn btn-secondary">← Назад</a>
+    </div>
+
+    <div class="card">
+        <!-- Информация об устройстве -->
+        <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <strong>{{ device.inventory_number }}</strong> — {{ device.name }}<br>
+            <small style="color: #718096;">
+                {{ device.device_type.name }} | {{ device.manufacturer.name }}<br>
+                Текущий статус: 
+                <span style="padding: 3px 8px; background: {% if 'В эксплуатации' in device.status.name %}#c6f6d5{% elif 'В ремонте' in device.status.name %}#fed7d7{% elif 'На складе' in device.status.name %}#bee3f8{% else %}#f7fafc{% endif %}; color: {% if 'В эксплуатации' in device.status.name %}#22543d{% elif 'В ремонте' in device.status.name %}#c53030{% elif 'На складе' in device.status.name %}#2b6cb0{% else %}#4a5568{% endif %}; border-radius: 4px; font-weight: 500;">
+                    {{ device.status.name }}
+                </span>
+            </small>
+        </div>
+
+        <!-- Форма смены статуса -->
+        <form method="post">
+            {% csrf_token %}
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Новый статус:</label>
+                <select name="status" class="form-input" style="width: 100%; padding: 10px; font-size: 15px;" required>
+                    {% for status in statuses %}
+                    <option value="{{ status.id_status }}" {% if status.id_status == current_status_id %}selected disabled{% endif %}>
+                        {{ status.name }}{% if status.id_status == current_status_id %} (текущий){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                <small style="color: #718096; display: block; margin-top: 5px;">
+                    * Текущий статус выбран по умолчанию и недоступен для повторного выбора
+                </small>
+            </div>
+
+            <!-- Поле местоположения: показывается только для определённых статусов -->
+            <div id="location-field" style="margin-bottom: 20px; display: none;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Местоположение:</label>
+                <select name="location" class="form-input" style="width: 100%; padding: 10px;">
+                    <option value="">-- Не указано / Оставить текущее --</option>
+                    {% for loc in locations %}
+                    <option value="{{ loc.id_location }}">
+                        {{ loc.name }}{% if loc.type %} ({{ loc.type.name }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Комментарий (основание):</label>
+                <textarea name="comment" class="form-input" rows="3" 
+                          placeholder="Например: Приказ №123, неисправность материнской платы, плановая замена..." 
+                          style="width: 100%; padding: 10px; resize: vertical;"></textarea>
+            </div>
+
+            <!-- Предупреждение при смене на "В ремонте" -->
+            <div id="repair-warning" style="display: none; background: #fff5f5; border-left: 4px solid #f56565; padding: 12px; margin-bottom: 20px; border-radius: 0 4px 4px 0;">
+                <p style="margin: 0; color: #c53030; font-size: 14px;">
+                    ⚠️ При смене статуса на «В ремонте» устройство будет автоматически снято с материально-ответственного лица.
+                </p>
+            </div>
+            <!-- В change_status.html, перед кнопкой отправки -->
+            <div style="margin-bottom: 20px;">
+                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" name="detach_from_employee" value="1" style="width: 18px; height: 18px;">
+                <span style="font-size: 14px; color: #4a5568;">Снять с текущего материально-ответственного лица</span>
+                </label>
+            </div>
+            <div style="display: flex; gap: 12px; margin-top: 25px;">
+                <button type="submit" class="btn btn-success" style="flex: 1;">💾 Подтвердить смену статуса</button>
+                <a href="{% url 'device_detail' device.inventory_number %}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Динамическое отображение полей в зависимости от выбранного статуса
+document.addEventListener('DOMContentLoaded', function() {
+    const statusSelect = document.querySelector('select[name="status"]');
+    const locationField = document.getElementById('location-field');
+    const repairWarning = document.getElementById('repair-warning');
+    
+    function toggleFields() {
+        const selectedStatus = statusSelect.options[statusSelect.selectedIndex].text;
+        
+        // Показываем поле местоположения для статусов "В эксплуатации" и "На складе"
+        if (selectedStatus.includes('В эксплуатации') || selectedStatus.includes('На складе')) {
+            locationField.style.display = 'block';
+        } else {
+            locationField.style.display = 'none';
+        }
+        
+        // Показываем предупреждение для статуса "В ремонте"
+        if (selectedStatus.includes('В ремонте')) {
+            repairWarning.style.display = 'block';
+        } else {
+            repairWarning.style.display = 'none';
+        }
+    }
+    
+    statusSelect.addEventListener('change', toggleFields);
+    toggleFields(); // Инициализация при загрузке
+});
+</script>
+
+<style>
+    .form-input {
+        border: 1px solid #cbd5e0;
+        border-radius: 6px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+    .form-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+</style>
+{% endblock %}

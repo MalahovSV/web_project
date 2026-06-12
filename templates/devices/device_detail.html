@@ -1,0 +1,238 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ device.inventory_number }} - {{ device.name }}{% endblock %}
+
+{% block content %}
+
+
+<style>
+    /* Стили для таблицы характеристик */
+.specs-main-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.specs-main-table tr {
+    border-bottom: 1px solid #e2e8f0;
+}
+.specs-main-table tr:last-child {
+    border-bottom: none;
+}
+.spec-title {
+    width: 200px;
+    vertical-align: top;
+    padding: 12px 15px;
+    background: #f7fafc;
+    font-weight: 600;
+    color: #2d3748;
+    font-size: 14px;
+}
+.spec-content {
+    padding: 12px 15px;
+    vertical-align: top;
+}
+.spec-text {
+    color: #4a5568;
+    font-size: 14px;
+}
+
+/* Вложенная таблица (для CPU, GPU и т.д.) */
+.spec-nested-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.spec-nested-table td {
+    padding: 4px 0;
+    vertical-align: top;
+}
+.nested-key {
+    color: #718096;
+    width: 120px;
+    font-weight: 500;
+}
+
+/* Список (для RAM и т.д.) */
+.spec-list {
+    margin: 0;
+    padding-left: 20px;
+    color: #4a5568;
+    font-size: 14px;
+}
+.spec-list li {
+    margin-bottom: 4px;
+}
+</style>
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+    <h1 class="page-title" style="margin-bottom: 0;">🖥️ {{ device.inventory_number }}</h1>
+    <div style="display: flex; gap: 10px;">
+        <a href="{% url 'device_list' %}" class="btn btn-secondary">← Назад</a>
+        <a href="{% url 'assign_device' device.inventory_number %}" class="btn btn-success"> Передать МОЛ</a>
+        <!-- Кнопка смены статуса (только для админов) -->
+        {% if user.is_staff %}
+        <a href="{% url 'change_device_status' device.inventory_number %}" class="btn" style="background: #718096;">🔄 Сменить статус</a>
+        {% endif %}
+        <a href="/admin/inventory/device/{{ device.inventory_number }}/change/" class="btn">✏️ Редактировать</a>
+        <!-- Кнопка печати этикетки -->
+        <a href="{% url 'print_inventory_label' device.inventory_number %}" 
+            target="_blank" 
+            class="btn" 
+            style="background: #718096;">
+            🏷️ Печать этикетки
+            </a>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 25px;">
+    <!-- Основная информация -->
+    <div class="card">
+        <h2 class="card-title">📋 Основная информация</h2>
+        <table class="table" style="margin-top: 0;">
+            <tr>
+                <td style="font-weight: 600; color: #4a5568; width: 40%;">Наименование:</td>
+                <td>{{ device.name }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600; color: #4a5568;">Тип устройства:</td>
+                <td>{{ device.device_type.name }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600; color: #4a5568;">Производитель:</td>
+                <td>{{ device.manufacturer.name }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600; color: #4a5568;">Статус:</td>
+                <td>
+                    <span style="padding: 4px 10px; background: {% if device.status.name == 'В эксплуатации' %}#c6f6d5{% elif device.status.name == 'В ремонте' %}#feebc8{% elif device.status.name == 'Списан' %}#fed7d7{% else %}#e2e8f0{% endif %}; color: {% if device.status.name == 'В эксплуатации' %}#22543d{% elif device.status.name == 'В ремонте' %}#744210{% elif device.status.name == 'Списан' %}#742a2a{% else %}#4a5568{% endif %}; border-radius: 4px; font-size: 13px;">
+                        {{ device.status.name }}
+                    </span>
+                </td>
+            </tr>
+        </table>
+    </div>
+    
+    <!-- Текущее местоположение -->
+    <div class="card">
+        <h2 class="card-title">📍 Текущее состояние</h2>
+        {% if current_movement %}
+        <table class="table" style="margin-top: 0;">
+            <tr>
+                <td style="font-weight: 600; color: #4a5568; width: 40%;">Местоположение:</td>
+                <td>{{ current_movement.location.name }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600; color: #4a5568;">Ответственный (МОЛ):</td>
+                <td>
+                    {% if current_movement.employee %}
+                        {{ current_movement.employee.user.get_full_name }}
+                        <br><small style="color: #718096;">{{ current_movement.employee.position.name|default:"Должность не указана" }}</small>
+                    {% else %}
+                        <span style="color: #718096;">Не назначен</span>
+                    {% endif %}
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600; color: #4a5568;">Дата последнего перемещения:</td>
+                <td>{{ current_movement.movement_date|date:"d.m.Y H:i" }}</td>
+            </tr>
+        </table>
+        {% else %}
+        <p style="color: #718096; text-align: center; padding: 20px;">Информация о местоположении отсутствует</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Характеристики (JSON) -->
+{% if specs_html %}
+<div class="card">
+    <h2 class="card-title">️ Технические характеристики</h2>
+    <!-- |safe разрешает рендеринг HTML, иначе он покажет теги как текст -->
+    {{ specs_html|safe }}
+</div>
+{% endif %}
+
+<!-- 🔧 ПРОГРАММНЫЕ НАСТРОЙКИ -->
+{% if settings_html %}
+<div class="card" style="margin-top: 25px;">
+    <h2 class="card-title">🔧 Программные настройки</h2>
+    {{ settings_html|safe }}
+</div>
+{% endif %}
+
+<!-- История перемещений -->
+<div class="card">
+    <h2 class="card-title">📦 История перемещений</h2>
+    {% if movements %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Дата</th>
+                <th>Местоположение</th>
+                <th>Ответственный</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in movements %}
+            <tr>
+                <td>{{ m.movement_date|date:"d.m.Y H:i" }}</td>
+                <td>{{ m.location.name }}</td>
+                <td>
+                    {% if m.employee %}
+                        {{ m.employee.user.get_full_name }}
+                        {% if m.employee.position %}
+                            <br><small style="color: #718096;">{{ m.employee.position.name }}</small>
+                        {% endif %}
+                    {% else %}
+                        <span style="color: #718096;">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #718096; text-align: center; padding: 20px;">История перемещений отсутствует</p>
+    {% endif %}
+</div>
+
+<!-- Заявки по устройству -->
+<div class="card">
+    <h2 class="card-title">🎫 Заявки на обслуживание</h2>
+    {% if tickets %}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>№</th>
+                <th>Дата создания</th>
+                <th>Статус</th>
+                <th>Заявитель</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for t in tickets %}
+            <tr>
+                <td>#{{ t.id_ticket }}</td>
+                <td>{{ t.created_at|date:"d.m.Y H:i" }}</td>
+                <td>
+                    <span style="padding: 4px 8px; background: {% if 'Новый' in t.status.name %}#fed7d7{% elif 'В работе' in t.status.name %}#feebc8{% elif 'Выполнен' in t.status.name %}#c6f6d5{% else %}#e2e8f0{% endif %}; border-radius: 4px; font-size: 12px;">
+                        {{ t.status.name }}
+                    </span>
+                </td>
+                <td>{{ t.employee.user.get_full_name|default:"Не указан" }}</td>
+                <td>
+                    <a href="/admin/inventory/ticket/{{ t.id_ticket }}/change/" class="btn btn-sm">Просмотр</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color: #718096; text-align: center; padding: 20px;">Заявок по этому устройству нет</p>
+    {% endif %}
+    
+    <div style="margin-top: 20px;">
+        <a href="/admin/inventory/ticket/add/?device={{ device.inventory_number }}" class="btn btn-success">➕ Создать заявку на это устройство</a>
+    </div>
+</div>
+{% endblock %}

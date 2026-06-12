@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Заявка #{{ ticket.id_ticket }}{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 0 auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+        <h1 class="page-title" style="margin-bottom: 0;">🎫 Заявка #{{ ticket.id_ticket }}</h1>
+        <a href="{% url 'user_tickets' %}" class="btn btn-secondary">← Назад</a>
+    </div>
+
+    <div class="card">
+        <h2 class="card-title">📋 Информация о заявке</h2>
+        <table class="table" style="margin-top: 0;">
+            <tr>
+                <td style="font-weight: 600; width: 40%;">Дата создания:</td>
+                <td>{{ ticket.created_at|date:"d.m.Y H:i" }}</td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">Устройство:</td>
+                <td>
+                    <strong>{{ ticket.device.inventory_number }}</strong> — {{ ticket.device.name }}<br>
+                    <small style="color: #718096;">{{ ticket.device.device_type.name }}</small>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600;">Статус:</td>
+                <td>
+                    <span style="padding: 6px 12px; background: {% if 'Новый' in ticket.status.name %}#fed7d7{% elif 'В работе' in ticket.status.name %}#feebc8{% elif 'Выполнен' in ticket.status.name %}#c6f6d5{% elif 'Отклонен' in ticket.status.name %}#e2e8f0{% else %}#f7fafc{% endif %}; color: {% if 'Новый' in ticket.status.name %}#c53030{% elif 'В работе' in ticket.status.name %}#744210{% elif 'Выполнен' in ticket.status.name %}#22543d{% elif 'Отклонен' in ticket.status.name %}#4a5568{% else %}#4a5568{% endif %}; border-radius: 4px; font-weight: 500;">
+                        {{ ticket.status.name }}
+                    </span>
+                </td>
+            </tr>
+            <tr>
+                <td style="font-weight: 600; vertical-align: top;">Описание проблемы:</td>
+                <td style="white-space: pre-wrap;">{{ ticket.comment }}</td>
+            </tr>
+            {% if ticket.technical_response %}
+            <tr>
+                <td style="font-weight: 600; vertical-align: top;">Ответ ИТ-отдела:</td>
+                <td style="background: #f7fafc; padding: 12px; border-radius: 6px; white-space: pre-wrap;">
+                    {{ ticket.technical_response }}
+                </td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+
+    {% if not ticket.technical_response and ticket.status.name != 'Отклонен' %}
+    <div class="card" style="margin-top: 20px; background: #fffbeb; border-left: 4px solid #d69e2e;">
+        <p style="margin: 0; color: #744210; font-size: 14px;">
+            💡 Ваша заявка в работе. Ответ от ИТ-отдела появится здесь после обработки.
+        </p>
+    </div>
+    {% endif %}
+<!-- 🔧 Кнопка для админов: перейти в режим управления -->
+{% if user.is_staff %}
+<div style="margin-top: 25px; padding-top: 20px; border-top: 2px dashed #e2e8f0;">
+    
+    <a href="{% url 'admin_ticket_detail' ticket.id_ticket %}" class="btn btn-success" style="width: 100%;">
+        🔧 Управление заявкой (админ)
+    </a>
+</div>
+{% endif %}
+</div>
+{% endblock %}

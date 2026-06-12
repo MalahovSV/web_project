@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+
+{% block title %}Мои заявки{% endblock %}
+
+{% block content %}
+<div style="max-width: 1200px; margin: 0 auto;">
+    <h1 class="page-title">🎫 Мои заявки на обслуживание</h1>
+    
+    <!-- Информация о сотруднике -->
+    <div class="card" style="margin-bottom: 25px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div>
+                <strong>{{ employee.user.get_full_name|default:employee.user.username }}</strong><br>
+                <small style="color: #718096;">
+                    {% if employee.position %}{{ employee.position.name }}{% endif %}
+                    {% if employee.department %} | {{ employee.department }}{% endif %}
+                </small>
+            </div>
+            {% if employee.is_mol %}
+            <span style="padding: 6px 12px; background: #e2e8f0; border-radius: 20px; font-size: 13px;">
+                ✓ Материально-ответственное лицо
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Форма создания нового тикета -->
+    <div class="card">
+        <h2 class="card-title">➕ Создать новую заявку</h2>
+        <form method="post" style="display: grid; gap: 15px;">
+            {% csrf_token %}
+            
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Выберите устройство:</label>
+                <select name="device" class="form-input" required>
+                    <option value="">-- Выберите из закрепленных --</option>
+                    {% for device in devices %}
+                    <option value="{{ device.inventory_number }}">
+                        {{ device.inventory_number }} — {{ device.name }}
+                    </option>
+                    {% empty %}
+                    <option value="" disabled>Нет закрепленных устройств</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div>
+                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Описание проблемы:</label>
+                <textarea name="comment" class="form-input" rows="4" 
+                          placeholder="Опишите проблему: не включается, не печатает, нет сети..." 
+                          required style="resize: vertical;"></textarea>
+            </div>
+            
+            <button type="submit" class="btn btn-success" style="align-self: start; width: auto;">📤 Отправить заявку</button>
+        </form>
+    </div>
+
+    <!-- Список тикетов -->
+    <div class="card" style="margin-top: 25px;">
+        <h2 class="card-title">📋 История заявок ({{ tickets.count }})</h2>
+        
+        {% if tickets %}
+        <div style="overflow-x: auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>№</th>
+                        <th>Дата</th>
+                        <th>Устройство</th>
+                        <th>Проблема</th>
+                        <th>Статус</th>
+                        <th>Ответ ИТ</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                    <tr>
+                        <td style="font-weight: 600;">#{{ ticket.id_ticket }}</td>
+                        <td style="white-space: nowrap;">{{ ticket.created_at|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            <small style="color: #718096;">{{ ticket.device.inventory_number }}</small><br>
+                            {{ ticket.device.name|truncatechars:30 }}
+                        </td>
+                        <td>{{ ticket.comment|truncatechars:50 }}</td>
+                        <td>
+                            <span style="padding: 4px 10px; background: {% if 'Новый' in ticket.status.name %}#fed7d7{% elif 'В работе' in ticket.status.name %}#feebc8{% elif 'Выполнен' in ticket.status.name %}#c6f6d5{% elif 'Отклонен' in ticket.status.name %}#e2e8f0{% else %}#f7fafc{% endif %}; color: {% if 'Новый' in ticket.status.name %}#c53030{% elif 'В работе' in ticket.status.name %}#744210{% elif 'Выполнен' in ticket.status.name %}#22543d{% elif 'Отклонен' in ticket.status.name %}#4a5568{% else %}#4a5568{% endif %}; border-radius: 4px; font-size: 12px; font-weight: 500;">
+                                {{ ticket.status.name }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if ticket.technical_response %}
+                                <small style="color: #4a5568;">{{ ticket.technical_response|truncatechars:30 }}</small>
+                            {% else %}
+                                <span style="color: #a0aec0;">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{% url 'ticket_detail' ticket.id_ticket %}" class="btn btn-sm">Просмотр</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p style="text-align: center; padding: 40px; color: #718096;">
+            У вас пока нет заявок. Создайте первую, если что-то не работает!
+        </p>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .form-input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #cbd5e0;
+        border-radius: 6px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+    .form-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+</style>
+{% endblock %}

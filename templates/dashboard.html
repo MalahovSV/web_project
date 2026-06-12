@@ -187,7 +187,7 @@
     <a href="{% url 'device_list' %}" class="btn">🖥️ Все устройства</a>
     <a href="{% url 'add_device' %}" class="btn btn-success">➕ Добавить устройство</a>
     <a href="/admin/inventory/ticket/add/" class="btn" style="background: #718096;">🎫 Создать заявку</a>
-    <a href="{% url 'print_report' %}?type=value" target="_blank" class="btn btn-secondary">📄 Отчёт ОС-1</a>
+    <a href="{% url 'reports:print_report' %}?type=value" target="_blank" class="btn btn-secondary">📄 Отчёт ОС-1</a>
 </div>
 
 {% endif %}

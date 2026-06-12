@@ -28,4 +28,6 @@ urlpatterns = [
     
     # === API ===
     path('api/device-template/<int:device_type_id>/', views.get_device_template, name='get_device_template'),
+
+    path('all-tickets/', views.all_tickets, name='all_tickets'),
 ]

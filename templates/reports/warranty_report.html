@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Гарантийные сроки</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #2d3748; border-bottom: 3px solid #4299e1; padding-bottom: 10px; }
+        .info { background: #f7fafc; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-card { padding: 15px; border-radius: 6px; text-align: center; }
+        .stat-expired { background: #ffe6e6; color: #c53030; }
+        .stat-soon { background: #fff5e6; color: #c05621; }
+        .stat-ok { background: #e6fffa; color: #276749; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; font-size: 13px; }
+        th { background: #edf2f7; }
+        tr.expired { background: #fff5f5; }
+        tr.expiring { background: #fffaf0; }
+        .badge { padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+        .badge-expired { background: #fc8181; color: white; }
+        .badge-soon { background: #f6ad55; color: white; }
+        .badge-ok { background: #68d391; color: white; }
+        @media print {
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="margin-bottom: 20px;">
+        <button onclick="window.print()" class="btn" style="background: #4299e1; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">
+            🖨️ Печать / Сохранить PDF
+        </button>
+        <a href="{% url 'reports:reports_list' %}" class="btn" style="background: #718096; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-left: 10px;">
+            ← Назад к отчетам
+        </a>
+    </div>
+
+    <h1>⏰ Гарантийные сроки оборудования</h1>
+    
+    <div class="info">
+        <strong>Организация:</strong> {{ org.org_full_name }}<br>
+        <strong>Дата формирования:</strong> {{ generated_at }}
+    </div>
+
+    <div class="stats">
+        <div class="stat-card stat-expired">
+            <div style="font-size: 32px; font-weight: bold;">{{ expired_count }}</div>
+            <div>Просроченная гарантия</div>
+        </div>
+        <div class="stat-card stat-soon">
+            <div style="font-size: 32px; font-weight: bold;">{{ expiring_soon_count }}</div>
+            <div>Истекает в ближайшие 90 дней</div>
+        </div>
+        <div class="stat-card stat-ok">
+            <div style="font-size: 32px; font-weight: bold;">{{ warranty_info|length }}</div>
+            <div>Всего устройств с гарантией</div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Инв. номер</th>
+                <th>Наименование</th>
+                <th>Год покупки</th>
+                <th>Гарантия (мес.)</th>
+                <th>Истекает</th>
+                <th>Осталось дней</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in warranty_info %}
+            <tr class="{% if item.expired %}expired{% elif item.expiring_soon %}expiring{% endif %}">
+                <td><strong>{{ item.device.inventory_number }}</strong></td>
+                <td>{{ item.device.name }}</td>
+                <td>{{ item.purchase_year }}</td>
+                <td>{{ item.warranty_months }}</td>
+                <td>{{ item.warranty_end|date:"d.m.Y" }}</td>
+                <td style="font-weight: bold; {% if item.days_left < 0 %}color: #e53e3e;{% elif item.days_left <= 90 %}color: #dd6b20;{% else %}color: #38a169;{% endif %}">
+                    {% if item.days_left < 0 %}
+                        Просрочено на {{ item.days_left|abs }} дн.
+                    {% else %}
+                        {{ item.days_left }} дн.
+                    {% endif %}
+                </td>
+                <td>
+                    {% if item.expired %}
+                        <span class="badge badge-expired">❌ Просрочена</span>
+                    {% elif item.expiring_soon %}
+                        <span class="badge badge-soon">⚠️ Истекает</span>
+                    {% else %}
+                        <span class="badge badge-ok">✓ Действует</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 40px; color: #718096;">
+                    📭 Информация о гарантии не найдена
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

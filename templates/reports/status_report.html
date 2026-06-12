@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Устройства по статусам</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #2d3748; border-bottom: 3px solid #4299e1; padding-bottom: 10px; }
+        .info { background: #f7fafc; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+        .status-block { margin-bottom: 30px; page-break-inside: avoid; }
+        .status-title { 
+            padding: 10px 15px; 
+            font-size: 16px; 
+            font-weight: bold;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .status-new { background: #fff5e6; color: #f6ad55; }
+        .status-work { background: #e6f7ff; color: #4299e1; }
+        .status-repair { background: #ffe6e6; color: #f56565; }
+        .status-ok { background: #e6fffa; color: #48bb78; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; font-size: 13px; }
+        th { background: #edf2f7; }
+        tr:nth-child(even) { background: #f7fafc; }
+        @media print {
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="margin-bottom: 20px;">
+        <button onclick="window.print()" class="btn" style="background: #4299e1; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">
+            🖨️ Печать / Сохранить PDF
+        </button>
+        <a href="{% url 'reports:reports_list' %}" class="btn" style="background: #718096; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-left: 10px;">
+            ← Назад к отчетам
+        </a>
+    </div>
+
+    <h1>🔧 Устройства по статусам</h1>
+    
+    <div class="info">
+        <strong>Организация:</strong> {{ org.org_full_name }}<br>
+        <strong>Дата формирования:</strong> {{ generated_at }}
+    </div>
+
+    {% for item in status_data %}
+    <div class="status-block">
+        <div class="status-title {% if 'нов' in item.status.name|lower %}status-new
+                    {% elif 'работ' in item.status.name|lower %}status-work
+                    {% elif 'ремон' in item.status.name|lower %}status-repair
+                    {% elif 'выполн' in item.status.name|lower or 'спис' in item.status.name|lower %}status-ok
+                    {% else %}status-work{% endif %}">
+            {{ item.status.name }} — {{ item.count }} устройств
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Инв. номер</th>
+                    <th>Наименование</th>
+                    <th>Тип</th>
+                    <th>Производитель</th>
+                    <th>Кабинет</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for device in item.devices %}
+                <tr>
+                    <td><strong>{{ device.inventory_number }}</strong></td>
+                    <td>{{ device.name }}</td>
+                    <td>{{ device.device_type.name }}</td>
+                    <td>{{ device.manufacturer.name }}</td>
+                    <td>{{ device.movement_set.first.location.name|default:"Не размещено" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% empty %}
+    <p style="text-align: center; color: #718096; padding: 40px;">📭 Устройства не найдены</p>
+    {% endfor %}
+</body>
+</html>

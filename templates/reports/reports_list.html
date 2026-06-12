@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+
+{% block title %}Отчеты{% endblock %}
+
+{% block content %}
+<div class="page-title">📊 Отчеты</div>
+
+<div class="card">
+    <div class="card-title">Выберите тип отчета</div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px;">
+        {% for report in report_types %}
+        <div class="card" style="border: 2px solid #e2e8f0; transition: all 0.3s; cursor: pointer;" 
+             onmouseover="this.style.borderColor='#4299e1'; this.style.transform='translateY(-2px)';"
+             onmouseout="this.style.borderColor='#e2e8f0'; this.style.transform='translateY(0)';">
+            <div style="padding: 20px;">
+                <h3 style="margin: 0 0 10px 0; font-size: 18px;">{{ report.name }}</h3>
+                <p style="color: #718096; margin: 0 0 15px 0; font-size: 14px;">{{ report.desc }}</p>
+                <a href="{{ report.url }}" class="btn" target="_blank" style="display: inline-block; text-decoration: none;">
+                    📄 Сформировать отчет
+                </a>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

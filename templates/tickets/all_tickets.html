@@ -1,0 +1,152 @@
+{% extends 'base.html' %}
+
+{% block title %}Все заявки{% endblock %}
+
+{% block content %}
+<div class="page-title">🎫 Все заявки</div>
+
+<!-- Статистика -->
+<div class="card">
+    <div class="card-title">📊 Статистика</div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+        <div style="padding: 20px; background: #f7fafc; border-radius: 8px; text-align: center;">
+            <div style="font-size: 32px; font-weight: bold; color: #2d3748;">{{ stats.total }}</div>
+            <div style="color: #718096; margin-top: 5px;">Всего заявок</div>
+        </div>
+        <div style="padding: 20px; background: #fff5e6; border-radius: 8px; text-align: center;">
+            <div style="font-size: 32px; font-weight: bold; color: #f6ad55;">{{ stats.new }}</div>
+            <div style="color: #718096; margin-top: 5px;">Новые</div>
+        </div>
+        <div style="padding: 20px; background: #e6f7ff; border-radius: 8px; text-align: center;">
+            <div style="font-size: 32px; font-weight: bold; color: #4299e1;">{{ stats.in_progress }}</div>
+            <div style="color: #718096; margin-top: 5px;">В работе</div>
+        </div>
+        <div style="padding: 20px; background: #e6fffa; border-radius: 8px; text-align: center;">
+            <div style="font-size: 32px; font-weight: bold; color: #48bb78;">{{ stats.completed }}</div>
+            <div style="color: #718096; margin-top: 5px;">Выполнены</div>
+        </div>
+        <div style="padding: 20px; background: #ffe6e6; border-radius: 8px; text-align: center;">
+            <div style="font-size: 32px; font-weight: bold; color: #f56565;">{{ stats.cancelled }}</div>
+            <div style="color: #718096; margin-top: 5px;">Отклонены</div>
+        </div>
+    </div>
+</div>
+
+<!-- Фильтры -->
+<div class="card">
+    <div class="card-title">🔍 Фильтры</div>
+    <form method="get" style="display: flex; gap: 15px; flex-wrap: wrap; align-items: end;">
+        <div style="flex: 1; min-width: 250px;">
+            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #4a5568;">Поиск</label>
+            <input 
+                type="text" 
+                name="search" 
+                value="{{ search_query }}"
+                placeholder="Инвентарный номер, устройство, заявитель..."
+                style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px;"
+            >
+        </div>
+        <div style="min-width: 200px;">
+            <label style="display: block; margin-bottom: 5px; font-weight: 600; color: #4a5568;">Статус</label>
+            <select 
+                name="status" 
+                style="width: 100%; padding: 10px; border: 1px solid #e2e8f0; border-radius: 6px;"
+            >
+                <option value="">Все статусы</option>
+                {% for status in statuses %}
+                <option value="{{ status.id_status }}" {% if current_status == status.id_status|stringformat:"s" %}selected{% endif %}>
+                    {{ status.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn">🔍 Применить</button>
+            <a href="{% url 'all_tickets' %}" class="btn btn-secondary">Сбросить</a>
+        </div>
+    </form>
+</div>
+
+<!-- Таблица заявок -->
+<div class="card">
+    <div class="card-title">📋 Список заявок</div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Устройство</th>
+                <th>Описание</th>
+                <th>Статус</th>
+                <th>Заявитель</th>
+                <th>Дата создания</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ticket in tickets %}
+            <tr>
+                <td><strong>#{{ ticket.id_ticket }}</strong></td>
+                <td>
+                    <div style="font-weight: 600;">{{ ticket.device.inventory_number }}</div>
+                    <div style="font-size: 13px; color: #718096;">{{ ticket.device.name }}</div>
+                    <div style="font-size: 12px; color: #a0aec0;">{{ ticket.device.device_type.name }}</div>
+                </td>
+                <td style="max-width: 300px;">
+                    <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        {{ ticket.comment }}
+                    </div>
+                </td>
+                <td>
+                    {% if ticket.status.name == 'Новый' %}
+                        <span style="background: #fff5e6; color: #f6ad55; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 600;">
+                            {{ ticket.status.name }}
+                        </span>
+                    {% elif ticket.status.name == 'В работе' %}
+                        <span style="background: #e6f7ff; color: #4299e1; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 600;">
+                            {{ ticket.status.name }}
+                        </span>
+                    {% elif ticket.status.name == 'Выполнен' %}
+                        <span style="background: #e6fffa; color: #48bb78; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 600;">
+                            {{ ticket.status.name }}
+                        </span>
+                    {% elif ticket.status.name == 'Отклонен' %}
+                        <span style="background: #ffe6e6; color: #f56565; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 600;">
+                            {{ ticket.status.name }}
+                        </span>
+                    {% else %}
+                        <span style="background: #f7fafc; color: #718096; padding: 4px 12px; border-radius: 12px; font-size: 13px; font-weight: 600;">
+                            {{ ticket.status.name }}
+                        </span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if ticket.employee %}
+                        <div style="font-weight: 600;">{{ ticket.employee.user.get_full_name|default:ticket.employee.user.username }}</div>
+                        <div style="font-size: 13px; color: #718096;">{{ ticket.employee.department }}</div>
+                    {% else %}
+                        <span style="color: #a0aec0;">Не указан</span>
+                    {% endif %}
+                </td>
+                <td style="font-size: 13px; color: #718096;">
+                    {{ ticket.created_at|date:"d.m.Y H:i" }}
+                </td>
+                <td>
+                    <a href="{% url 'admin_ticket_detail' ticket.id_ticket %}" class="btn btn-sm">
+                        Управление
+                    </a>
+                    <a href="{% url 'ticket_detail' ticket.id_ticket %}" class="btn btn-sm btn-secondary" target="_blank">
+                        Просмотр
+                    </a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 40px; color: #a0aec0;">
+                    Заявки не найдены
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

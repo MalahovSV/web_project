@@ -79,7 +79,7 @@ def print_inventory_labels_batch(request):
     
     context = {
         'devices': devices_data,
-        'org_name': "Администрация города Рубцовска",
+        'org_name': "МБОУ \"Средняя общеобразовательная школа №3\"",
     }
     
     html = render_to_string('devices/inventory_labels_batch.html', context)
@@ -555,3 +555,50 @@ def assign_device(request, inventory_number):
         'locations': locations
     }
     return render(request, 'devices/assign_device.html', context)
+
+@login_required
+@user_passes_test(is_staff)
+def all_tickets(request):
+    """Страница админа: все заявки с фильтрами"""
+    tickets = Ticket.objects.select_related(
+        'device', 
+        'device__device_type',
+        'employee__user', 
+        'status'
+    ).order_by('-created_at')
+    
+    # Фильтры
+    status_filter = request.GET.get('status')
+    search_query = request.GET.get('search', '')
+    
+    if status_filter:
+        tickets = tickets.filter(status_id=status_filter)
+    
+    if search_query:
+        tickets = tickets.filter(
+            Q(device__inventory_number__icontains=search_query) |
+            Q(device__name__icontains=search_query) |
+            Q(comment__icontains=search_query) |
+            Q(employee__user__first_name__icontains=search_query) |
+            Q(employee__user__last_name__icontains=search_query)
+        )
+    
+    # Статистика
+    all_tickets = Ticket.objects.all()
+    stats = {
+        'total': all_tickets.count(),
+        'new': all_tickets.filter(status__name='Новый').count(),
+        'in_progress': all_tickets.filter(status__name='В работе').count(),
+        'completed': all_tickets.filter(status__name='Выполнен').count(),
+        'cancelled': all_tickets.filter(status__name='Отклонен').count(),
+    }
+    
+    context = {
+        'tickets': tickets,
+        'stats': stats,
+        'statuses': TicketStatus.objects.all(),
+        'current_status': status_filter,
+        'search_query': search_query,
+    }
+    
+    return render(request, 'tickets/all_tickets.html', context)

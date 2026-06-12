@@ -80,13 +80,13 @@
         {% if user.is_staff %}
             <li><a href="{% url 'device_list' %}" class="{% if 'device' in request.path and 'my-tickets' not in request.path %}active{% endif %}">🖥️ Устройства</a></li>
             <li><a href="{% url 'add_device' %}">➕ Добавить</a></li>
-            <li><a href="{% url 'print_report' %}?type=value" target="_blank">📄 Отчеты</a></li>
+            <li><a href="{% url 'reports:reports_list' %}" class="{% if request.resolver_match.url_name == 'reports_list' %}active{% endif %}">📄 Отчеты</a></li>
             <li><a href="{% url 'register_employee' %}">👤+ Сотрудник</a></li>
         {% endif %}
         
         <!-- Тикеты видят все, но с разными ссылками -->
         {% if user.is_staff %}
-            <li><a href="/admin/inventory/ticket/" class="{% if 'ticket' in request.path and 'my-tickets' not in request.path %}active{% endif %}">🎫 Все заявки</a></li>
+            <li><a href="{% url 'all_tickets' %}" class="{% if request.resolver_match.url_name == 'all_tickets' %}active{% endif %}">🎫 Все заявки</a></li>
         {% else %}
             <li><a href="{% url 'user_tickets' %}" class="{% if request.resolver_match.url_name == 'user_tickets' %}active{% endif %}">🎫 Мои заявки</a></li>
         {% endif %}
@@ -107,7 +107,7 @@
     </div>
     
     <div class="footer">
-        <p>Система учета компьютерной техники | Администрация города Рубцовска © 2026</p>
+        <p>Система учета компьютерной техники | МБОУ "Средняя общеобразовательная школа №3" © 2026</p>
     </div>
     
     {% block extra_js %}{% endblock %}

@@ -129,9 +129,9 @@
 <div style="margin-top: 25px;">
     <h3 style="margin: 0 0 10px 0; font-size: 16px;">📄 Генерация отчетов</h3>
     <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-        <a href="{% url 'print_report' %}?type=value" target="_blank" class="btn">📊 Материальная ценность</a>
-        <a href="{% url 'print_report' %}?type=network" target="_blank" class="btn">🌐 Сетевая схема (IP)</a>
-        <a href="{% url 'print_report' %}?type=user&user_id={{ request.user.id }}" target="_blank" class="btn">👤 Мой подотчет</a>
+        <a href="{% url 'reports:print_report' %}?type=value" target="_blank" class="btn">📄 Материальная ценность</a>
+        <a href="{% url 'reports:print_report' %}?type=network" target="_blank" class="btn">🌐 Сетевая схема (IP)</a>
+        <a href="{% url 'reports:print_report' %}?type=user&user_id={{ request.user.id }}" target="_blank" class="btn">👤 Мой подотчет</a>
     </div>
 </div>
 

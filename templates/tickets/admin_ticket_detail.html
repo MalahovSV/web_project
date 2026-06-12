@@ -20,11 +20,15 @@
             <tr>
                 <td style="font-weight: 600; width: 40%;">Сотрудник:</td>
                 <td>
-                    <strong>{{ ticket.employee.user.get_full_name|default:ticket.employee.user.username }}</strong><br>
-                    <small style="color: #718096;">
-                        {% if ticket.employee.position %}{{ ticket.employee.position.name }}{% endif %}
-                        {% if ticket.employee.department %} | {{ ticket.employee.department }}{% endif %}
-                    </small>
+                   {% if ticket.employee %}
+    <strong>{{ ticket.employee.user.get_full_name|default:ticket.employee.user.username }}</strong><br>
+    <small style="color: #718096;">
+        {% if ticket.employee.position %}{{ ticket.employee.position.name }}{% endif %}
+        {% if ticket.employee.department %} | {{ ticket.employee.department }}{% endif %}
+    </small>
+{% else %}
+    <span style="color: #a0aec0;">Не назначен</span>
+{% endif %}
                 </td>
             </tr>
             <tr>

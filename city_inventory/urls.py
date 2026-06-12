@@ -24,7 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('inventory.urls')), 
     path('', include('core.urls')), 
-    path('', include('reports.urls')),  
+        path('reports/', include('reports.urls', namespace='reports')),  # ← Добавили namespace
     
     
 ]

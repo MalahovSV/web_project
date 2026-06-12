@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Отчет по заявкам</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #2d3748; border-bottom: 3px solid #4299e1; padding-bottom: 10px; }
+        .info { background: #f7fafc; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+        .stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 15px; margin-bottom: 20px; }
+        .stat-card { padding: 15px; border-radius: 6px; text-align: center; background: #edf2f7; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #e2e8f0; padding: 8px; text-align: left; font-size: 13px; }
+        th { background: #4299e1; color: white; }
+        tr:nth-child(even) { background: #f7fafc; }
+        .status-new { background: #fff5e6; color: #c05621; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+        .status-progress { background: #e6f7ff; color: #2b6cb0; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+        .status-done { background: #e6fffa; color: #276749; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+        .status-cancel { background: #ffe6e6; color: #c53030; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+        @media print {
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="no-print" style="margin-bottom: 20px;">
+        <button onclick="window.print()" class="btn" style="background: #4299e1; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">
+            🖨️ Печать / Сохранить PDF
+        </button>
+        <a href="{% url 'reports:reports_list' %}" class="btn" style="background: #718096; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; margin-left: 10px;">
+            ← Назад к отчетам
+        </a>
+    </div>
+
+    <h1>🎫 Отчет по заявкам</h1>
+    
+    <div class="info">
+        <strong>Организация:</strong> {{ org.org_full_name }}<br>
+        <strong>Дата формирования:</strong> {{ generated_at }}
+    </div>
+
+    <div class="stats">
+        <div class="stat-card">
+            <div style="font-size: 32px; font-weight: bold;">{{ stats.total }}</div>
+            <div>Всего заявок</div>
+        </div>
+        <div class="stat-card" style="background: #fff5e6;">
+            <div style="font-size: 32px; font-weight: bold; color: #c05621;">{{ stats.new }}</div>
+            <div>Новые</div>
+        </div>
+        <div class="stat-card" style="background: #e6f7ff;">
+            <div style="font-size: 32px; font-weight: bold; color: #2b6cb0;">{{ stats.in_progress }}</div>
+            <div>В работе</div>
+        </div>
+        <div class="stat-card" style="background: #e6fffa;">
+            <div style="font-size: 32px; font-weight: bold; color: #276749;">{{ stats.completed }}</div>
+            <div>Выполнены</div>
+        </div>
+        <div class="stat-card" style="background: #ffe6e6;">
+            <div style="font-size: 32px; font-weight: bold; color: #c53030;">{{ stats.cancelled }}</div>
+            <div>Отклонены</div>
+        </div>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Устройство</th>
+                <th>Описание</th>
+                <th>Заявитель</th>
+                <th>Статус</th>
+                <th>Дата создания</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ticket in tickets %}
+            <tr>
+                <td><strong>#{{ ticket.id_ticket }}</strong></td>
+                <td>
+                    <div style="font-weight: 600;">{{ ticket.device.inventory_number }}</div>
+                    <div style="font-size: 12px; color: #718096;">{{ ticket.device.name }}</div>
+                </td>
+                <td>{{ ticket.comment|truncatewords:10 }}</td>
+                <td>
+                    {% if ticket.employee %}
+                        {{ ticket.employee.user.get_full_name|default:ticket.employee.user.username }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>
+                    {% if 'нов' in ticket.status.name|lower %}
+                        <span class="status-new">{{ ticket.status.name }}</span>
+                    {% elif 'работ' in ticket.status.name|lower %}
+                        <span class="status-progress">{{ ticket.status.name }}</span>
+                    {% elif 'выполн' in ticket.status.name|lower %}
+                        <span class="status-done">{{ ticket.status.name }}</span>
+                    {% elif 'отклон' in ticket.status.name|lower %}
+                        <span class="status-cancel">{{ ticket.status.name }}</span>
+                    {% else %}
+                        {{ ticket.status.name }}
+                    {% endif %}
+                </td>
+                <td>{{ ticket.created_at|date:"d.m.Y H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" style="text-align: center; padding: 40px; color: #718096;">
+                    📭 Заявки не найдены
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

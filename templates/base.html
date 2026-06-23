@@ -74,7 +74,7 @@
 <nav class="nav">
     <ul>
         <!-- Дашборд видят все -->
-        <li><a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">📊 Дашборд</a></li>
+        <li><a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">📊 Главная страница</a></li>
         
         <!-- Устройства и отчеты — только для админов/ИТ -->
         {% if user.is_staff %}
